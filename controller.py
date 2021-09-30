@@ -24,21 +24,12 @@ def get_list_for_base(bot, update):
     base = user.base
     if datetime.now() > last_update+timedelta(minutes=10):
         result = list_from_url(url=url, api_key=api_key, base=base)
-        if len(result) > 4096:
-            for x in range(0, len(result), 4096):
-                update.bot.send_message(chat_id=chat_id, text=result[x:x + 4096])
-        else:
-            update.bot.send_message(chat_id=chat_id, text=result)
-
+        update.bot.send_message(chat_id=chat_id, text=result)
         last_update = datetime.now()
     else:
         exchanges = session.query(Exchange).all()
         result = list_from_base(exchanges, base=base)
-        if len(result) > 4096:
-            for x in range(0, len(result), 4096):
-                update.bot.send_message(chat_id=chat_id, text=result[x:x + 4096])
-        else:
-            update.bot.send_message(chat_id=chat_id, text=result)
+        update.bot.send_message(chat_id=chat_id, text=result)
 
 
 def start(bot, update):
@@ -69,34 +60,50 @@ def change_base(bot, update):
 
 
 def convert(bot, update):
-    amount = int(update.args[0])
-    base = update.args[1]
-    symbol = update.args[3]
-    print(amount, base, symbol)
     chat_id = bot.effective_chat.id
-    if datetime.now() > last_update+timedelta(minutes=10):
-        result = convert_from_url(url=url, api_key=api_key, amount=amount, base=base, symbol=symbol)
+    try:
+        amount = int(update.args[0])
+        base = update.args[1]
+        symbol = update.args[3]
+        if datetime.now() > last_update + timedelta(minutes=10):
+            result = convert_from_url(url=url, api_key=api_key, amount=amount, base=base, symbol=symbol)
+            update.bot.send_message(chat_id=chat_id,
+                                    text=result)
+        else:
+            session = Session()
+            exchanges = session.query(Exchange).all()
+            result = convert_from_base(exchanges=exchanges, amount=amount, base=base, symbol=symbol)
+            update.bot.send_message(chat_id=chat_id,
+                                    text=result)
+    except Exception:
         update.bot.send_message(chat_id=chat_id,
-                                text=result)
-    else:
-        session = Session()
-        exchanges = session.query(Exchange).all()
-        result = convert_from_base(exchanges=exchanges, amount=amount, base=base, symbol=symbol)
-        update.bot.send_message(chat_id=chat_id,
-                                text=result)
+                               text="you should try to use it like this '/exchange 10 USD to EUR'")
+
+
 
 def history(bot, update):
-    base = update.args[0]
-    days = int(update.args[2])
     chat_id = bot.effective_chat.id
-    price_row_and_days_row = history_get(url=url,
-                                         api_key=api_key,
-                                         base=base,
-                                         days=days)
-    plt.title(f"{base} changes for {days} days")
-    plt.xlabel("days")
-    plt.ylabel("price")
-    plt.plot(price_row_and_days_row[1], price_row_and_days_row[0])
-    plt.savefig("image.png")
-    update.bot.send_photo(chat_id=chat_id,
-                            photo=open("image.png", "rb"))
+    try:
+        base = update.args[0]
+        days = int(update.args[2])
+        price_row_and_days_row = history_get(url=url,
+                                             api_key=api_key,
+                                             base=base,
+                                             days=days)
+        plt.title(f"{base} changes for {days} days")
+        plt.xlabel("days")
+        plt.ylabel("price")
+        plt.plot(price_row_and_days_row[1], price_row_and_days_row[0])
+        plt.savefig("image.png")
+        update.bot.send_photo(chat_id=chat_id,
+                              photo=open("image.png", "rb"))
+    except Exception:
+        update.bot.send_message(chat_id=chat_id, text="you should try to use in like this '/history USD for 5 days'")
+
+def help_command(bot, update):
+    chat_id = bot.effective_chat.id
+    update.bot.send_message(chat_id=chat_id, text="You can use "
+                                                  "/list - to get list of all currencies in comparison with the main\n"
+                                                  "/change_base_currency - to change your base currency (example '/change_base_currency USD')\n"
+                                                  "/exchange - to show exchange one currency to another (example /exchange 10 USD to EUR)\n"
+                                                  "/history - to see history of changing currency price (example /history USD for 5 days)")

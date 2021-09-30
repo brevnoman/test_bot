@@ -1,7 +1,7 @@
 from telegram.ext import Updater
 import logging
 from models import Base, engine
-from handlers import get_list_handler, start_handler, change_base_handler, exchange_handler, history_handler
+from handlers import get_list_handler, start_handler, change_base_handler, exchange_handler, history_handler, help_handler
 
 def main():
     updater = Updater(token="2002722331:AAED7F86tngIiuVURVdZsoVksCmYPfVyEJs")
@@ -14,6 +14,7 @@ def main():
     dispatcher.add_handler(change_base_handler)
     dispatcher.add_handler(exchange_handler)
     dispatcher.add_handler(history_handler)
+    dispatcher.add_handler(help_handler)
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
